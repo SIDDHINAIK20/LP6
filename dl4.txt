@@ -1,0 +1,144 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import MinMaxScaler
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import (
+    Dense,
+    Dropout,
+    LSTM,
+    Input
+)
+
+# Load dataset
+df = pd.read_csv("stock_price.csv")
+
+# Display first 5 rows
+print(df.head())
+
+# Select closing price column
+data = df['Close'].values
+
+# Convert into 2D array
+data = data.reshape(-1,1)
+
+# Normalize data
+scaler = MinMaxScaler(feature_range=(0,1))
+
+data = scaler.fit_transform(data)
+
+# Create training data
+xtrain = []
+ytrain = []
+
+# Use previous 60 days to predict next day
+for i in range(60, len(data)):
+
+    xtrain.append(data[i-60:i, 0])
+
+    ytrain.append(data[i, 0])
+
+# Convert into numpy arrays
+xtrain = np.array(xtrain)
+ytrain = np.array(ytrain)
+
+# Reshape for LSTM
+xtrain = xtrain.reshape(
+    xtrain.shape[0],
+    xtrain.shape[1],
+    1
+)
+
+# Create Deep Learning model
+model = Sequential()
+
+# Input layer
+model.add(Input(shape=(60,1)))
+
+# First LSTM layer
+model.add(
+    LSTM(
+        64,
+        return_sequences=True
+    )
+)
+
+# Dropout layer
+model.add(Dropout(0.2))
+
+# Second LSTM layer
+model.add(LSTM(64))
+
+# Dropout layer
+model.add(Dropout(0.2))
+
+# Dense hidden layer
+model.add(Dense(32, activation='relu'))
+
+# Output layer
+model.add(Dense(1))
+
+# Compile model
+model.compile(
+    optimizer='adam',
+    loss='mean_squared_error'
+)
+
+# Display model summary
+model.summary()
+
+# Train model
+history = model.fit(
+    xtrain,
+    ytrain,
+    epochs=10,
+    batch_size=32
+)
+
+# Prepare testing data
+test_data = data[-100:]
+
+xtest = []
+ytest = data[-40:]
+
+for i in range(60, len(test_data)):
+
+    xtest.append(test_data[i-60:i, 0])
+
+# Convert into numpy array
+xtest = np.array(xtest)
+
+# Reshape for LSTM
+xtest = xtest.reshape(
+    xtest.shape[0],
+    xtest.shape[1],
+    1
+)
+
+# Predict stock prices
+predicted_prices = model.predict(xtest)
+
+# Convert back to original values
+predicted_prices = scaler.inverse_transform(predicted_prices)
+
+# Convert actual values back
+ytest = scaler.inverse_transform(ytest)
+
+# Plot actual vs predicted prices
+plt.figure(figsize=(10,6))
+
+plt.plot(ytest, label='Actual Price')
+
+plt.plot(predicted_prices, label='Predicted Price')
+
+plt.xlabel("Time")
+
+plt.ylabel("Stock Price")
+
+plt.title("Stock Price Prediction using Deep Learning")
+
+plt.legend()
+
+plt.show()
