@@ -1,0 +1,113 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Input
+
+# Load dataset
+df = pd.read_csv("HousingData.csv")
+
+# Fill missing values with mean
+df.fillna(df.mean(), inplace=True)
+
+# Display first 5 rows
+print(df.head())
+
+# Dataset information
+print(df.info())
+
+# Statistical summary
+print(df.describe())
+
+# Correlation heatmap
+plt.figure(figsize=(12,8))
+
+sns.heatmap(
+    df.corr(),
+    annot=True,
+    cmap='coolwarm',
+    fmt='.2f'
+)
+
+plt.title("Correlation Heatmap")
+plt.show()
+
+# Select input features
+x = df.loc[:, ['LSTAT', 'PTRATIO', 'RM']]
+
+# Target column
+y = df.loc[:, 'MEDV']
+
+# Check shape
+print(x.shape)
+print(y.shape)
+
+# Split dataset
+xtrain, xtest, ytrain, ytest = train_test_split(
+    x,
+    y,
+    test_size=0.20,
+    random_state=10
+)
+
+# Feature scaling
+sc = StandardScaler()
+
+xtrain = sc.fit_transform(xtrain)
+xtest = sc.transform(xtest)
+
+# Create Deep Neural Network model
+model = Sequential()
+
+# Input layer
+model.add(Input(shape=(3,)))
+
+# Hidden layers
+model.add(Dense(128, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(16, activation='relu'))
+model.add(Dense(8, activation='relu'))
+
+# Output layer
+model.add(Dense(1, activation='linear'))
+
+# Compile model
+model.compile(
+    optimizer='adam',
+    loss='mse',
+    metrics=['mae']
+)
+
+# Display model summary
+model.summary()
+
+# Train model
+history = model.fit(
+    xtrain,
+    ytrain,
+    epochs=100,
+    validation_split=0.05
+)
+
+# Evaluate model
+output = model.evaluate(xtest, ytest)
+
+print("Mean Squared Error:", output[0])
+print("Mean Absolute Error:", output[1])
+
+# New data prediction
+new_data = np.array([[5, 15, 6]])
+
+# Scale new data
+new_data = sc.transform(new_data)
+
+# Predict house price
+prediction = model.predict(new_data)
+
+print("Predicted House Price:", prediction)
