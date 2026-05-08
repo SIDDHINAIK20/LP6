@@ -1,0 +1,146 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from tensorflow.keras.datasets import fashion_mnist
+from tensorflow.keras.models import Sequential
+
+from tensorflow.keras.layers import (
+    Input,
+    Conv2D,
+    MaxPooling2D,
+    Flatten,
+    Dense,
+    Dropout,
+    BatchNormalization
+)
+
+# Fashion category names
+class_names = [
+    'T-shirt/top',
+    'Trouser',
+    'Pullover',
+    'Dress',
+    'Coat',
+    'Sandal',
+    'Shirt',
+    'Sneaker',
+    'Bag',
+    'Ankle boot'
+]
+
+# Load Fashion MNIST dataset
+(xtrain, ytrain), (xtest, ytest) = fashion_mnist.load_data()
+
+# Normalize pixel values
+xtrain = xtrain / 255.0
+xtest = xtest / 255.0
+
+# Reshape images for CNN
+xtrain = xtrain.reshape((60000, 28, 28, 1))
+xtest = xtest.reshape((10000, 28, 28, 1))
+
+# Create CNN model
+model = Sequential()
+
+# Input layer
+model.add(Input(shape=(28,28,1)))
+
+# First convolution layer
+model.add(
+    Conv2D(
+        32,
+        (3,3),
+        activation='relu'
+    )
+)
+
+# Batch normalization
+model.add(BatchNormalization())
+
+# First pooling layer
+model.add(MaxPooling2D((2,2)))
+
+# First dropout layer
+model.add(Dropout(0.25))
+
+# Second convolution layer
+model.add(
+    Conv2D(
+        64,
+        (3,3),
+        activation='relu'
+    )
+)
+
+# Batch normalization
+model.add(BatchNormalization())
+
+# Second pooling layer
+model.add(MaxPooling2D((2,2)))
+
+# Second dropout layer
+model.add(Dropout(0.25))
+
+# Flatten layer
+model.add(Flatten())
+
+# Dense hidden layer
+model.add(Dense(128, activation='relu'))
+
+# Third dropout layer
+model.add(Dropout(0.5))
+
+# Output layer
+model.add(Dense(10, activation='softmax'))
+
+# Compile model
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Display model summary
+model.summary()
+
+# Train model
+history = model.fit(
+    xtrain,
+    ytrain,
+    epochs=5,
+    batch_size=128,
+    validation_split=0.2
+)
+
+# Evaluate model
+loss, accuracy = model.evaluate(xtest, ytest)
+
+print("Loss:", loss)
+print("Accuracy:", accuracy)
+
+# Predict test images
+predictions = model.predict(xtest)
+
+# Convert probabilities into class labels
+y_pred = np.argmax(predictions, axis=1)
+
+# Display prediction images
+plt.figure(figsize=(8,8))
+
+for i in range(25):
+
+    plt.subplot(5,5,i+1)
+
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+
+    plt.imshow(
+        xtest[i].reshape(28,28),
+        cmap='binary'
+    )
+
+    plt.title(class_names[y_pred[i]])
+
+plt.tight_layout()
+plt.show()
